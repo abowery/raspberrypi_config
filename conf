@@ -115,7 +115,3 @@ sudo apt-get install logwatch
 
 # Configure:
 /usr/share/logwatch/default.conf/logwatch.conf
-
-
-#ADD SCRIPT TO WORK OUT NEW IP ADDRESS (both local and external) AND SEND THAT BACK TO THE SERVER ADMIN
-
