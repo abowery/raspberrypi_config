@@ -1,0 +1,121 @@
+# Configuring a Raspberry Pi machine:
+
+#Download the operating system:
+curl https://downloads.raspberrypi.org/raspbian_latest
+
+#Download Etcher and install it locally:
+curl https://github.com/resin-io/etcher/releases/download/v1.1.1/etcher-1.1.1-linux-x64.zip
+
+#Connect an SD card reader with the SD card inside, open Etcher and select the Raspberry Pi file to write to the SD card, and the SD card.
+
+#Add a new user and set password:
+sudo /usr/sbin/useradd --groups sudo -m USERNAME
+sudo passwd USERNAME
+
+#Set the root password:
+sudo passwd root
+
+#Delete the default Pi account in Raspbian:
+
+# Set SSH and limit PAM:
+sudo vi /etc/ssh/sshd_config
+
+#Change to:
+
+#################################
+# Authentication:
+LoginGraceTime 120
+PermitRootLogin no
+StrictModes yes
+
+RSAAuthentication yes
+PubkeyAuthentication yes
+AuthorizedKeysFile      %h/.ssh/authorized_keys
+
+# To enable empty passwords, change to yes (NOT RECOMMENDED)
+PermitEmptyPasswords no
+
+# Change to yes to enable challenge-response passwords (beware issues with
+# some PAM modules and threads)
+ChallengeResponseAuthentication no
+
+# Change to no to disable tunnelled clear text passwords
+PasswordAuthentication no
+
+UsePAM no
+#################################
+
+#Restart SSH:
+sudo systemctl restart ssh
+
+
+# Install iptables:
+sudo apt-get install iptables iptables-persistent
+
+# Save the iptables rules:
+sudo /sbin/iptables-save > /etc/iptables/rules.v4
+
+
+# Change the iptables rules file to:
+sudo cat /etc/iptables/rules.v4
+
+#################################
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+
+# Allows all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0
+-A INPUT -i lo -j ACCEPT
+-A INPUT ! -i lo -d 127.0.0.0/8 -j REJECT
+
+# Accepts all established inbound connections
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Allows all outbound traffic
+# You could modify this to only allow certain traffic
+-A OUTPUT -j ACCEPT
+
+# Allows SSH connections 
+# The --dport number is the same as in /etc/ssh/sshd_config
+-A INPUT -p tcp -m state --state NEW --dport 22 -j ACCEPT
+
+# log iptables denied calls (access via 'dmesg' command)
+-A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables denied: " --log-level 7
+
+# Reject all other inbound - default deny unless explicitly allowed policy:
+-A INPUT -j REJECT
+-A FORWARD -j REJECT
+
+COMMIT
+#################################
+
+# Apply these changes:
+sudo /usr/sbin/iptables-apply /etc/iptables/rules.v4
+
+
+# Setup automatic updates:
+sudo apt-get install unattended-upgrades apt-listchanges
+
+# Uncomment the following line in: /etc/apt/apt.conf.d/50unattended-upgrades
+
+Unattended-Upgrade::Mail "root";
+
+# Add to: /etc/apt/apt.conf.d/20auto-upgrades
+
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+
+# Run:
+dpkg-reconfigure -plow unattended-upgrades
+
+
+# Setup Logwatch:
+
+sudo apt-get install logwatch
+
+# Configure:
+/usr/share/logwatch/default.conf/logwatch.conf
+
+
+#ADD SCRIPT TO WORK OUT NEW IP ADDRESS (both local and external) AND SEND THAT BACK TO THE SERVER ADMIN
+
